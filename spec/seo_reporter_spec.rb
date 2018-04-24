@@ -3,7 +3,9 @@ RSpec.describe SeoReporter do
     expect(SeoReporter::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    expect(false).to eq(true)
+  let(:site) { ENV.fetch('SITE') { 'http://localhost:3000/' } }
+
+  it "loads site data" do
+    SeoReporter.top_words(site: site)
   end
 end

@@ -1,5 +1,73 @@
 require "seo_reporter/version"
 
-module SeoReporter
-  # Your code goes here...
+require 'csv'
+require 'logger'
+
+def make_hash(default)
+  Hash.new { |hash,key| hash[key] = default }
 end
+
+module Site
+  autoload :Spider, 'site/spider'
+end
+
+require "site/page"
+require "site/pages"
+
+
+module SeoReporter
+  def self.logger
+    @@logger ||= Logger.new(STDOUT)
+  end
+
+  KEYWORD_REPORT_IN = 'data/keywords-in.csv'
+  KEYWORD_REPORT_OUT = 'data/keywords-out.csv'
+
+  def self.top_words(site:)
+    pages = Site::Pages.new(site: site)
+    top = pages.word_counts.to_a.sort_by {|tuple| -tuple[1]}.take(50)
+    total = pages.all_pages.count.to_f
+
+    puts "Top #{top.length} words over all #{total.to_i} site pages:"
+    top.each do |tuple|
+      puts tuple.join(': ') + " (about #{'%.2f' % (tuple[1] / total)} per page)"
+    end
+  end
+
+  def self.keyword_report(site:, write: false)
+    raise("First place a .csv file containing a list of keywords at #{KEYWORD_REPORT_IN}") unless File.exists?(KEYWORD_REPORT_IN)
+    keywords = CSV.read(KEYWORD_REPORT_IN).map {|r| r[0].to_s.downcase.strip }
+    data = Site::Pages.new(site: site).phrase_counts( keywords.uniq ).to_a.sort_by {|tuple| -tuple[1]}
+
+    data.reverse.each do |k,v|
+      puts "#{k}: #{v}"
+    end
+
+    if write
+      CSV.open(KEYWORD_REPORT_OUT, "wb") do |csv|
+        data.each do |k,v|
+          csv << [k, v]
+        end
+      end
+      puts "Wrote report (#{data.length} keywords) to #{KEYWORD_REPORT_OUT}".green
+    end
+  end
+
+  def self.page_report
+    # 2 - per url:
+    #   page title
+    #   metas: keyword description
+    #   text of all h1 / h2 / h3 ...
+    #   --
+    #   image:
+    #     src url
+    #     alt
+    #
+    #   links:
+    #     url linking to
+    #     anchor text
+  end
+
+
+end
+

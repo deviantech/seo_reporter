@@ -10,7 +10,7 @@ class PhraseCountFromText
 
     {
       url: row[:url],
-      phrase_counts: counts,
+      phrase_counts: counts_per_phrase(raw),
     }
   end
 
@@ -18,10 +18,14 @@ class PhraseCountFromText
 
   def counts_per_phrase(raw)
     # Note: could use Parallel here - https://github.com/grosser/parallel
-    phrases.each_with_object( make_hash(0) ) do |phrase, results|
-      if (cnt = (raw.split(phrase).count - 1)) > 0
-        results[phrase] += cnt
-      end
+    phrases.each_with_object( make_hash(0) ) do |phrase, data|
+      next if phrase =~ /\?{4,}/ # skip if a bunch of ??s
+      data[phrase] += text.scan( scan_regex_for(phrase) ).length
     end
   end
+
+  def scan_regex_for(phrase)
+    /#{ phrase.gsub(/\s+/, '\s+') }/
+  end
+
 end
