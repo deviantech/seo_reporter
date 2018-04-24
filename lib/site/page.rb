@@ -18,5 +18,13 @@ module Site
       @text ||= doc.at('body')&.text.to_s.downcase
     end
 
+    def method_missing(method_name, *args, &block)
+      doc.send(method_name, *args, &block)
+    end
+
+    def respond_to_missing?(method_name, include_private = false)
+      doc.respond_to?(method_name, include_private)
+    end
+
   end
 end

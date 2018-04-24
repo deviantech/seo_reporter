@@ -23,18 +23,10 @@ module Site
       end
     end
 
-    def word_counts
-      @word_counts ||= all_pages.each_with_object( make_hash(0) ) do |page, words|
-        page.word_counts.each do |word, count|
-          words[word] += count if word.present?
-        end
-      end
-    end
-
     def phrase_counts(phrases)
       @phrase_counts ||= all_pages.each_with_object( make_hash(0) ) do |page, data|
         page.phrase_counts(phrases).each do |phrase, count|
-          data[phrase] += count if phrase.present?
+          data[phrase] += count if phrase&.length.to_i > 0
         end
       end
     end

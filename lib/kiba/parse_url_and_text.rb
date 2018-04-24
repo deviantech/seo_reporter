@@ -1,7 +1,7 @@
 class ParseUrlAndText
   def process(page)
-    return unless page.html.present?
-    return unless (text = parsed_text(page)).present?
+    return unless page.html&.length.to_i > 0
+    return unless text = parsed_text(page)
 
     {
       url: page.url,

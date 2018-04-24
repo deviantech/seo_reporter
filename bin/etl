@@ -1,0 +1,83 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "seo_reporter"
+require 'kiba'
+
+begin
+  require 'pry'
+  require 'pry-byebug'
+rescue LoadError; nil
+end
+
+module ETL
+  autoload :PageReport, 'etl/page_report'
+  # autoload :PhraseReport, 'etl/phrase_report'
+end
+
+SITE = ENV.fetch('SITE')
+
+class Report
+  def self.call(filename)
+    job = ETL::PageReport.per_page( SITE, csv_out: "reports/#{filename}.csv", with_transform: self )
+    Kiba.run(job)
+  end
+
+  def process(page)
+    page
+  end
+end
+
+class ImageReport < Report
+  def process(page)
+    page.css('img').map do |img|
+      yield({url: page.url, src: img['src'], alt: img['alt'] })
+    end
+    nil
+  end
+end
+
+class LinkReport < Report
+  def process(page)
+    page.css('a').map do |link|
+      yield({
+              url: page.url,
+              href: link['href'],
+              text: link.text.to_s.strip,
+              image: link.at('img') && link.at('img')['src'],
+              new_window: link['target'] == '_blank',
+              nofollow: link['rel'] == 'nofollow',
+              html: link.to_html,
+      })
+    end
+    nil
+  end
+end
+
+class PageReport < Report
+  def process(page)
+    base = {
+      url: page.url,
+      title: page.title,
+      title_fb: page.at('meta[property="og:title"]')&.attr('content'),
+      title_tw: page.at('meta[name="twitter:title"]')&.attr('content'),
+      description: page.at('meta[name="description"]')&.attr('content'),
+      description_fb: page.at('meta[property="og:description"]')&.attr('content'),
+      description_tw: page.at('meta[name="twitter:description"]')&.attr('content'),
+    }
+
+    idx = 1
+    1.upto(6).each do |n|
+      page.css("h#{n}").each do |h|
+        base[ "header_#{idx}".to_sym ] = [h.name, h.text.to_s.strip].join(': ')
+        idx += 1
+      end
+    end
+
+    base
+  end
+end
+
+ImageReport.call('images')
+LinkReport.call('links')
+PageReport.call('pages')

@@ -6,7 +6,7 @@ class PhraseCountFromText
 
   def process(row)
     counts = counts_per_phrase( row[:text] )
-    return unless counts.present?
+    return unless counts&.length.to_i > 0
 
     {
       url: row[:url],
